@@ -1,3 +1,4 @@
+package sample;
 public class Administrator {
     private int administratorId;
     private int userId;

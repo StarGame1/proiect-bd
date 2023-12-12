@@ -1,4 +1,4 @@
-package model;
+package sample;
     public class Professor {
         private int professorId;
         private int userId;

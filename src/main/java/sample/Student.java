@@ -1,4 +1,4 @@
-package model;
+package sample;
 public class Student {
     private int studentId;
     private int userId;
