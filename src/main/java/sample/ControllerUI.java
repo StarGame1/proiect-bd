@@ -16,13 +16,13 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
-
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -124,5 +124,54 @@ public class ControllerUI implements Initializable {
 
     }
     //END OF LOG OUT BUTTON
+
+    //chat
+
+    @FXML
+    private TextArea chatTextArea;
+
+    @FXML
+    private TextField messageTextField;
+
+    private int userId = 5; // Replace with the actual user ID
+    private DatabaseConnection databaseConnection = new DatabaseConnection();
+    private ChatDAO chatDAO = new ChatDAO(databaseConnection);
+
+
+
+
+    @FXML
+    private void initialize() {
+        // Load chat history when initializing the UI
+        loadChatHistory();
+    }
+
+    @FXML
+    private void sendMessageAction() {
+        String message = messageTextField.getText().trim();
+        if (!message.isEmpty()) {
+            ChatMessage chatMessage = new ChatMessage();
+            chatMessage.setSenderId(userId);
+            chatMessage.setMessageText(message);
+
+            chatDAO.sendGroupMessage(chatMessage);
+
+            // Update the UI (append the message to chatTextArea)
+            chatTextArea.appendText("You: " + message + "\n");
+            messageTextField.clear();
+        }
+    }
+
+    private void loadChatHistory() {
+        chatDAO.loadChatHistory(901, chatTextArea);
+    }
+
+
+
+
+
+
+
+    //end chat
 
 }

@@ -8,6 +8,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
@@ -103,11 +104,16 @@ public class ControllerLogin {
     @FXML
     private Button switchToRegister;
 
+    @FXML private Rectangle dragNode;
+
+
+
     @FXML
     public void switchToRegisterScene(ActionEvent event) throws IOException {
         Parent root = FXMLLoader.load(getClass().getResource("register.fxml"));
         stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         scene = new Scene(root);
+        stage.centerOnScreen();
         stage.setScene(scene);
         stage.show();
 

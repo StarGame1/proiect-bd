@@ -77,7 +77,7 @@ public class ControllerRegister {
     }
 
     @FXML
-    public void loginButtonAction(ActionEvent event) {
+    public void loginButtonAction(ActionEvent event) throws IOException {
         if (validateFields()) {
             String username = usernameTextField.getText();
             String password = passwordTextField.getText();
@@ -89,11 +89,43 @@ public class ControllerRegister {
             String adresa = adresaTextField.getText();
             String iban = ibanTextField.getText();
             String contract = contractTextField.getText();
-            validateLogin();
+            if(validateFields()) {
+                createUser(username, password, email, cnp, nume, prenume, tel, adresa, iban, contract);
+                Parent root = FXMLLoader.load(getClass().getResource("login.fxml"));
+                stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                scene = new Scene(root);
+                stage.setScene(scene);
+                stage.show();
+            }
 
             System.out.println("Login successful for user: " + username);
         } else {
             System.out.println("Please fill in all fields.");
+        }
+    }
+    private void createUser(String username, String password, String email, String cnp, String nume, String prenume,
+                            String tel, String adresa, String iban, String contract) {
+        try {
+            DatabaseConnection connect = new DatabaseConnection();
+            Connection connectDB = connect.getConnection();
+
+            // Define the SQL query to insert a new user
+            String insertUserQuery = "INSERT INTO Users (username, password, role, cnp, nume, prenume, adresa, nr_telefon, email, iban, nr_contract) " +
+                    "VALUES ('" + username + "', '" + password + "', 'user_role_here', '" + cnp + "', '" + nume + "', '" +
+                    prenume + "', '" + adresa + "', '" + tel + "', '" + email + "', '" + iban + "', '" + contract + "')";
+
+            // Create a statement and execute the query
+            Statement statement = connectDB.createStatement();
+            statement.executeUpdate(insertUserQuery);
+
+            // Close the statement and connection
+            statement.close();
+            connectDB.close();
+
+            System.out.println("User created successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Error creating user: " + e.getMessage());
         }
     }
 
