@@ -139,22 +139,19 @@ public class ControllerUI implements Initializable {
 
 
 
-
-    @FXML
-    private void initialize() {
-        // Load chat history when initializing the UI
-        loadChatHistory();
-    }
-
     @FXML
     private void sendMessageAction() {
         String message = messageTextField.getText().trim();
         if (!message.isEmpty()) {
-            ChatMessage chatMessage = new ChatMessage();
-            chatMessage.setSenderId(userId);
-            chatMessage.setMessageText(message);
+            // Replace with the actual group ID
+            int groupId = 901; // Change this according to your group ID
+            GroupChatMessage groupChatMessage = new GroupChatMessage();
+            groupChatMessage.setSenderId(userId);
+            groupChatMessage.setGroupId(groupId);
+            groupChatMessage.setMessageText(message);
 
-            chatDAO.sendGroupMessage(chatMessage);
+            // Save the group chat message to the database
+            saveGroupChatMessage(groupChatMessage);
 
             // Update the UI (append the message to chatTextArea)
             chatTextArea.appendText("You: " + message + "\n");
@@ -162,8 +159,54 @@ public class ControllerUI implements Initializable {
         }
     }
 
-    private void loadChatHistory() {
-        chatDAO.loadChatHistory(901, chatTextArea);
+    private void saveGroupChatMessage(GroupChatMessage groupChatMessage) {
+        try (Connection connectDB = databaseConnection.getConnection();
+             PreparedStatement statement = connectDB.prepareStatement(
+                     "INSERT INTO GroupChatMessages (sender_id, group_id, message_text) VALUES (?, ?, ?)")) {
+            statement.setInt(1, groupChatMessage.getSenderId());
+            statement.setInt(2, groupChatMessage.getGroupId());
+            statement.setString(3, groupChatMessage.getMessageText());
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void loadGroupChatHistory() {
+        // Replace with the actual group ID
+        int groupId = 901; // Change this according to your group ID
+        loadGroupChatHistory(groupId, chatTextArea);
+    }
+
+    private void loadGroupChatHistory(int groupId, TextArea chatTextArea) {
+        List<GroupChatMessage> groupChatHistory = new ArrayList<>();
+
+        try (Connection connectDB = databaseConnection.getConnection();
+             PreparedStatement statement = connectDB.prepareStatement(
+                     "SELECT * FROM GroupChatMessages WHERE group_id = ?")) {
+            statement.setInt(1, groupId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    GroupChatMessage groupChatMessage = new GroupChatMessage();
+                    groupChatMessage.setMessageId(resultSet.getInt("message_id"));
+                    groupChatMessage.setSenderId(resultSet.getInt("sender_id"));
+                    groupChatMessage.setGroupId(resultSet.getInt("group_id"));
+                    groupChatMessage.setMessageText(resultSet.getString("message_text"));
+                    groupChatMessage.setTimestamp(resultSet.getTimestamp("timestamp"));
+
+                    groupChatHistory.add(groupChatMessage);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        for (GroupChatMessage groupChatMessage : groupChatHistory) {
+            chatTextArea.appendText(groupChatMessage.getSenderId() + ": " + groupChatMessage.getMessageText() + "\n");
+        }
     }
 
 
