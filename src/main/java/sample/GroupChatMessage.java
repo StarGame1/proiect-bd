@@ -1,5 +1,4 @@
 package sample;
-
 import java.sql.Timestamp;
 
 public class GroupChatMessage {
@@ -8,17 +7,9 @@ public class GroupChatMessage {
     private int groupId;
     private String messageText;
     private Timestamp timestamp;
+    private String senderName;  // Add senderName field
 
     public GroupChatMessage() {
-        // Default constructor
-    }
-
-    public GroupChatMessage(int messageId, int senderId, int groupId, String messageText, Timestamp timestamp) {
-        this.messageId = messageId;
-        this.senderId = senderId;
-        this.groupId = groupId;
-        this.messageText = messageText;
-        this.timestamp = timestamp;
     }
 
     public int getMessageId() {
@@ -61,14 +52,11 @@ public class GroupChatMessage {
         this.timestamp = timestamp;
     }
 
-    @Override
-    public String toString() {
-        return "GroupChatMessage{" +
-                "messageId=" + messageId +
-                ", senderId=" + senderId +
-                ", groupId=" + groupId +
-                ", messageText='" + messageText + '\'' +
-                ", timestamp=" + timestamp +
-                '}';
+    public String getSenderName() {
+        return senderName;
+    }
+
+    public void setSenderName(String senderName) {
+        this.senderName = senderName;
     }
 }

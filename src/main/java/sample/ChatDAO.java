@@ -1,8 +1,6 @@
 package sample;
 
 import javafx.scene.control.TextArea;
-import sample.ControllerUI;
-import sample.DatabaseConnection;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -33,7 +31,7 @@ public class ChatDAO {
         }
     }
 
-    public void loadChatHistory(int groupId, TextArea chatTextArea) {
+    public List<ChatMessage> loadChatHistory(int groupId) {
         List<ChatMessage> groupChatHistory = new ArrayList<>();
 
         try (Connection connectDB = databaseConnection.getConnection();
@@ -57,8 +55,6 @@ public class ChatDAO {
             e.printStackTrace();
         }
 
-        for (ChatMessage message : groupChatHistory) {
-            chatTextArea.appendText(message.getSenderId() + ": " + message.getMessageText() + "\n");
-        }
+        return groupChatHistory;
     }
 }

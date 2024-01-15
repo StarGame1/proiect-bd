@@ -75,6 +75,16 @@ public class ControllerRegister {
                 (!studentRole.isSelected() && profesorRole.isSelected() && !adminRole.isSelected()) ||
                 (!studentRole.isSelected() && !profesorRole.isSelected() && adminRole.isSelected());
     }
+    private String getSelectedRole() {
+        if (studentRole.isSelected()) {
+            return "student";
+        } else if (profesorRole.isSelected()) {
+            return "profesor";
+        } else if (adminRole.isSelected()) {
+            return "administrator";
+        }
+        return null; // None selected
+    }
 
     @FXML
     public void loginButtonAction(ActionEvent event) throws IOException {
@@ -89,8 +99,9 @@ public class ControllerRegister {
             String adresa = adresaTextField.getText();
             String iban = ibanTextField.getText();
             String contract = contractTextField.getText();
+            String selectedRole = getSelectedRole();
             if(validateFields()) {
-                createUser(username, password, email, cnp, nume, prenume, tel, adresa, iban, contract);
+                createUser(username, password, email, cnp, nume, prenume, tel, adresa, iban, contract, selectedRole);
                 Parent root = FXMLLoader.load(getClass().getResource("login.fxml"));
                 stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
                 scene = new Scene(root);
@@ -104,14 +115,14 @@ public class ControllerRegister {
         }
     }
     private void createUser(String username, String password, String email, String cnp, String nume, String prenume,
-                            String tel, String adresa, String iban, String contract) {
+                            String tel, String adresa, String iban, String contract, String role) {
         try {
             DatabaseConnection connect = new DatabaseConnection();
             Connection connectDB = connect.getConnection();
 
             // Define the SQL query to insert a new user
             String insertUserQuery = "INSERT INTO Users (username, password, role, cnp, nume, prenume, adresa, nr_telefon, email, iban, nr_contract) " +
-                    "VALUES ('" + username + "', '" + password + "', 'user_role_here', '" + cnp + "', '" + nume + "', '" +
+                    "VALUES ('" + username + "', '" + password + "', '" + role + "', '" + cnp + "', '" + nume + "', '" +
                     prenume + "', '" + adresa + "', '" + tel + "', '" + email + "', '" + iban + "', '" + contract + "')";
 
             // Create a statement and execute the query

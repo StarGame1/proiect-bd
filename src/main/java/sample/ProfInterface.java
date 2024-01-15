@@ -2,14 +2,13 @@ package sample;
 
 import java.io.IOException;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javafx.beans.property.ReadOnlyDoubleWrapper;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -27,7 +26,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 
-public class ControllerUI implements Initializable {
+public class ProfInterface implements Initializable {
     @FXML
     private TableView<SearchModel> TableView;
     @FXML
@@ -45,48 +44,56 @@ public class ControllerUI implements Initializable {
     @FXML
     private Button logOutButton;
     @FXML
-    private TextArea chatTextArea;
+    private Button showPersonalDataButton;
     @FXML
-    private TextField messageTextField;
-    private User loggedInUser;
-    private int userId = 5;
-    private DatabaseConnection databaseConnection = new DatabaseConnection();
-    private ChatDAO chatDAO;
+    private TextField Course;
     @FXML
     private ListView<String> listOfCourses;
 
+    @FXML
+    private TableView<StudentGrade> gradesTableView;
+    @FXML
+    private TableColumn<StudentGrade, String> studentNameColumn;
+    @FXML
+    private TableColumn<StudentGrade, Double> gradeColumn;
+    private User loggedInUser;
+    @FXML
+    private TextArea chatTextArea;
+    @FXML
+    private TextField messageTextField;
+    private int userId = 5;
+    private DatabaseConnection databaseConnection = new DatabaseConnection();
+    private ChatDAO chatDAO;
 
-
-
-    public ControllerUI() {
-        this.chatDAO = new ChatDAO(this.databaseConnection);
-    }
-    public void setLoggedInUser(User user)
-    {
+    public void setLoggedInUser(User user) {
         this.loggedInUser = user;
+        // Now you can use this.loggedInUser to access the logged-in user information
     }
 
     public void initialize(URL url, ResourceBundle resource) {
         DatabaseConnection connect = new DatabaseConnection();
         Connection connectDB = connect.getConnection();
-
         String query = "SELECT nume, prenume, role from Users";
-        loadGroupChatHistory();
+        this.TableView.setVisible(false);
+
+
         try {
             Statement statement = connectDB.createStatement();
             ResultSet queryOutput = statement.executeQuery(query);
 
-            while (queryOutput.next()) {
+            while(queryOutput.next()) {
                 String numeQuery = queryOutput.getString("nume");
                 String prenumeQuery = queryOutput.getString("prenume");
                 String rolQuery = queryOutput.getString("role");
                 this.SearchModelObservableList.add(new SearchModel(numeQuery, prenumeQuery, rolQuery));
             }
+
             String courseQuery = "SELECT course_name FROM Courses";
             Statement courseStatement = connectDB.createStatement();
             ResultSet courseQueryOutput = courseStatement.executeQuery(courseQuery);
 
             ObservableList<String> courseList = FXCollections.observableArrayList();
+
             while (courseQueryOutput.next()) {
                 String courseName = courseQueryOutput.getString("course_name");
                 courseList.add(courseName);
@@ -120,22 +127,167 @@ public class ControllerUI implements Initializable {
             SortedList<SearchModel> sortedData = new SortedList(filteredData);
             sortedData.comparatorProperty().bind(this.TableView.comparatorProperty());
             this.TableView.setItems(sortedData);
-
-            // Load group chat history when initializing the UI
-           // loadGroupChatHistory();
+            loadGroupChatHistory();
         } catch (SQLException var11) {
-            Logger.getLogger(ControllerUI.class.getName()).log(Level.SEVERE, (String) null, var11);
+            Logger.getLogger(ControllerUI.class.getName()).log(Level.SEVERE, (String)null, var11);
             var11.printStackTrace();
         }
+        studentNameColumn.setCellValueFactory(cellData -> new ReadOnlyStringWrapper(cellData.getValue().studentNameProperty()));
+        gradeColumn.setCellValueFactory(cellData -> new ReadOnlyDoubleWrapper(cellData.getValue().gradeProperty()).asObject());
+
+
+        // Setează conținutul tabelului cu date de exemplu
+        gradesTableView.setItems(getSampleStudentGrades());
     }
-    private String showUpdateDialog(String oldCourseName) {
-        TextInputDialog dialog = new TextInputDialog(oldCourseName);
-        dialog.setTitle("Update Course");
-        dialog.setHeaderText("Update Course Name");
-        dialog.setContentText("New Course Name:");
-        Optional<String> result = dialog.showAndWait();
-        return result.orElse(null);
+
+    private ObservableList<StudentGrade> getSampleStudentGrades() {
+        ObservableList<StudentGrade> sampleGrades = FXCollections.observableArrayList();
+        // Înlocuiește cu logica de a obține notele din baza de date
+        // sampleGrades.add(new StudentGrade("Student1", 9.5));
+        // sampleGrades.add(new StudentGrade("Student2", 8.0));
+        // Adaugă mai multe date așa cum ai nevoie
+        return sampleGrades;
     }
+
+    @FXML
+    public void makeSearchAppear(KeyEvent event) {
+        if (this.searchField.getText().isEmpty()) {
+            this.TableView.setVisible(false);
+        } else {
+            this.TableView.setVisible(true);
+        }
+    }
+
+    @FXML
+    public void logOutAction(ActionEvent event) throws IOException {
+        Parent root = (Parent)FXMLLoader.load(this.getClass().getResource("login.fxml"));
+        this.stage = (Stage)((Node)event.getSource()).getScene().getWindow();
+        this.scene = new Scene(root);
+        this.stage.setScene(this.scene);
+        this.stage.show();
+    }
+
+    @FXML
+    void addCourse(MouseEvent event) {
+        String courseName = Course.getText();
+        if (!courseName.isEmpty()) {
+            addCourseToDatabase(courseName);
+            listOfCourses.getItems().add(courseName);
+            Course.clear();
+        } else {
+            showAlert("Numele cursului nu poate fi gol!");
+        }
+    }
+
+    @FXML
+    void removeCourse(MouseEvent event) {
+        String selectedCourse = listOfCourses.getSelectionModel().getSelectedItem();
+        if (selectedCourse != null) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirmare ștergere");
+            alert.setHeaderText("Sigur doriți să ștergeți acest curs?");
+            alert.setContentText("Curs: " + selectedCourse);
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                removeCourseFromDatabase(selectedCourse);
+                listOfCourses.getItems().remove(selectedCourse);
+            }
+        } else {
+            showAlert("Selectați un curs pentru a îl șterge.");
+        }
+    }
+
+
+    @FXML
+    public void onShowPersonalData() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        Connection connection = DatabaseConnection.getConnection();
+        String loggedInUserString = loggedInUser.getUsername();
+        alert.setTitle("User Information");
+        alert.setHeaderText("Username: " + loggedInUser.getUsername());
+        alert.setContentText("Role: " + loggedInUser.getRole() + "\n" +
+                "Nume: " + getSingleInfo(connection, "Users", loggedInUserString, "nume") + "\n" +
+                "Prenume: " + getSingleInfo(connection, "Users", loggedInUserString, "prenume") + "\n"+
+                "CNP: " + getSingleInfo(connection, "Users", loggedInUserString, "cnp") + "\n"+
+                "Adresa: " + getSingleInfo(connection, "Users", loggedInUserString, "adresa") + "\n"+
+                "Nr. Telefon: " + getSingleInfo(connection, "Users", loggedInUserString, "nr_telefon") + "\n"+
+                "Email: " + getSingleInfo(connection, "Users", loggedInUserString, "email") + "\n"+
+                "Iban: " + getSingleInfo(connection, "Users", loggedInUserString, "iban") + "\n"+
+                "Nr. Contract: " + getSingleInfo(connection, "Users", loggedInUserString, "nr_contract") + "\n");
+
+
+        // Get the main stage from any control within the current scene
+        Stage mainStage = (Stage) TableView.getScene().getWindow();
+
+        // Set the owner of the alert to the main stage
+        alert.initOwner(mainStage);
+
+        alert.showAndWait();
+    }
+
+
+    public static String getSingleInfo(Connection connection, String tableName, String username, String info)
+    {
+        String query = "SELECT " + info + " FROM " + tableName + " WHERE username = ?";
+
+        try
+        {
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+            preparedStatement.setString(1, username);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if(resultSet.next())
+            {
+                return resultSet.getString(info);
+            }
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+
+    private void addCourseToDatabase(String courseName) {
+        DatabaseConnection connect = new DatabaseConnection();
+        try (Connection connectDB = connect.getConnection()) {
+            String insertQuery = "INSERT INTO Courses (course_name) VALUES (?)";
+            try (PreparedStatement preparedStatement = connectDB.prepareStatement(insertQuery)) {
+                preparedStatement.setString(1, courseName);
+                preparedStatement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            Logger.getLogger(ProfInterface.class.getName()).log(Level.SEVERE, null, e);
+            e.printStackTrace();
+        }
+    }
+
+    private void showAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Avertisment");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void removeCourseFromDatabase(String courseName) {
+        DatabaseConnection connect = new DatabaseConnection();
+        try (Connection connectDB = connect.getConnection()) {
+            String deleteQuery = "DELETE FROM Courses WHERE course_name = ?";
+            try (PreparedStatement preparedStatement = connectDB.prepareStatement(deleteQuery)) {
+                preparedStatement.setString(1, courseName);
+                preparedStatement.executeUpdate();
+            }
+        } catch (SQLException e) {
+            Logger.getLogger(ProfInterface.class.getName()).log(Level.SEVERE, null, e);
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
     void updateCourse(MouseEvent event) {
         int selectedID = this.listOfCourses.getSelectionModel().getSelectedIndex();
         if (selectedID >= 0) {
@@ -162,74 +314,38 @@ public class ControllerUI implements Initializable {
         }
     }
 
-    @FXML
-    public void onShowPersonalData() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        Connection connection = DatabaseConnection.getConnection();
-        String loggedInUserString = this.loggedInUser.getUsername();
-
-        alert.setTitle("User Information");
-        alert.setHeaderText("Username: " + loggedInUser.getUsername());
-        alert.setContentText("Role: " + loggedInUser.getRole() + "\n" +
-                "Nume: " + getSingleInfo(connection, "Users", loggedInUserString, "nume") + "\n" +
-                "Prenume: " + getSingleInfo(connection, "Users", loggedInUserString, "prenume") + "\n"+
-                "CNP: " + getSingleInfo(connection, "Users", loggedInUserString, "cnp") + "\n"+
-                "Adresa: " + getSingleInfo(connection, "Users", loggedInUserString, "adresa") + "\n"+
-                "Nr. Telefon: " + getSingleInfo(connection, "Users", loggedInUserString, "nr_telefon") + "\n"+
-                "Email: " + getSingleInfo(connection, "Users", loggedInUserString, "email") + "\n"+
-                "Iban: " + getSingleInfo(connection, "Users", loggedInUserString, "iban") + "\n"+
-                "Nr. Contract: " + getSingleInfo(connection, "Users", loggedInUserString, "nr_contract") + "\n");
-
-
-        // Get the main stage from any control within the current scene
-        Stage mainStage = (Stage) TableView.getScene().getWindow();
-
-        // Set the owner of the alert to the main stage
-        alert.initOwner(mainStage);
-
-        alert.showAndWait();
-    }
-    @FXML
-    public int getid() {
-
-        Connection connection = DatabaseConnection.getConnection();
-        String loggedInUserString = this.loggedInUser.getUsername();
-            int id = Integer.parseInt(getSingleInfo(connection, "Users", loggedInUserString, "user_id"));
-
-
-
-                return id;
-
+    private String showUpdateDialog(String oldCourseName) {
+        TextInputDialog dialog = new TextInputDialog(oldCourseName);
+        dialog.setTitle("Update Course");
+        dialog.setHeaderText("Update Course Name");
+        dialog.setContentText("New Course Name:");
+        Optional<String> result = dialog.showAndWait();
+        return result.orElse(null);
     }
 
-
-
-
     @FXML
-    public void makeSearchAppear(KeyEvent event) {
-        if (this.searchField.getText().isEmpty()) {
-            this.TableView.setVisible(false);
-        } else {
-            this.TableView.setVisible(true);
+    public void saveGrades() {
+        ObservableList<TablePosition> selectedCells = gradesTableView.getSelectionModel().getSelectedCells();
+
+        for (TablePosition tablePosition : selectedCells) {
+            int rowIndex = tablePosition.getRow();
+            StudentGrade selectedStudent = gradesTableView.getItems().get(rowIndex);
+
+            // Obțineți nota pentru student și salvați-o în baza de date sau în alt loc corespunzător
+            double newGrade = selectedStudent.gradeProperty();
+
+            // Aici poți implementa logica pentru salvarea notei în baza de date sau altundeva
+            // Exemplu de acțiune: afișarea notei în consolă
+            System.out.println("Noua nota pentru " + selectedStudent.studentNameProperty() + ": " + newGrade);
         }
     }
 
-    @FXML
-    public void logOutAction(ActionEvent event) throws IOException {
-        Parent root = (Parent) FXMLLoader.load(this.getClass().getResource("login.fxml"));
-        this.stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        this.scene = new Scene(root);
-        this.stage.setScene(this.scene);
-        this.stage.show();
-    }
-    public void loadChatAction(ActionEvent ACTION){
-        loadGroupChatHistory();
-    }
 
+    //chat
     @FXML
     private void sendMessageAction() {
         String message = this.messageTextField.getText().trim();
-
+        loadGroupChatHistory();
         if (!message.isEmpty()) {
             int groupId = 901; // Replace with the actual group ID
             GroupChatMessage groupChatMessage = new GroupChatMessage();
@@ -295,34 +411,11 @@ public class ControllerUI implements Initializable {
         this.loadGroupChatHistory(groupId, this.chatTextArea);
     }
 
-    public static String getSingleInfo(Connection connection, String tableName, String username, String info)
-    {
-        String query = "SELECT " + info + " FROM " + tableName + " WHERE username = ?";
-
-        try
-        {
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setString(1, username);
-
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if(resultSet.next())
-            {
-                return resultSet.getString(info);
-            }
-        }
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
     private void loadGroupChatHistory(int groupId, TextArea chatTextArea) {
         List<GroupChatMessage> groupChatHistory = new ArrayList<>();
 
         try {
-            Connection connectDB = databaseConnection.getConnection();
+            Connection connectDB = this.databaseConnection.getConnection();
 
             try {
                 String query = "SELECT g.*, u.nume AS sender_name FROM GroupChatMessages g " +
@@ -344,6 +437,8 @@ public class ControllerUI implements Initializable {
                             groupChatMessage.setMessageText(resultSet.getString("message_text"));
                             groupChatMessage.setTimestamp(resultSet.getTimestamp("timestamp"));
                             groupChatMessage.setSenderName(resultSet.getString("sender_name"));
+
+                            System.out.println("Loaded message: " + groupChatMessage.getSenderName() + ": " + groupChatMessage.getMessageText());
 
                             groupChatHistory.add(groupChatMessage);
                         }

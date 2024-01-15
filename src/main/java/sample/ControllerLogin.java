@@ -34,6 +34,13 @@ public class ControllerLogin {
     @FXML
     private Label labelSuccesful;
 
+    public User getLoggedInUser() {
+        return loggedInUser;
+    }
+
+    private User loggedInUser;
+
+
     @FXML
     public void initialize() {
         submitButton.setOnAction(event -> {
@@ -57,6 +64,27 @@ public class ControllerLogin {
                 !passwordTextField.getText().isEmpty();
 
     }
+    private String retrieveRoleFromDatabase(String username) {
+        String role = null;
+
+        DatabaseConnection connectNow = new DatabaseConnection();
+        Connection connectDB = connectNow.getConnection();
+
+        String retrieveRoleQuery = "SELECT role FROM Users WHERE username = '" + username + "'";
+
+        try {
+            Statement statement = connectDB.createStatement();
+            ResultSet queryResult = statement.executeQuery(retrieveRoleQuery);
+
+            if (queryResult.next()) {
+                role = queryResult.getString("role");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return role;
+    }
 
 
     @FXML
@@ -64,17 +92,21 @@ public class ControllerLogin {
         if (validateLogin()) {
             String username = usernameTextField.getText();
             String password = passwordTextField.getText();
+            GroupChatMessage user = new GroupChatMessage();
+            user.setSenderName(username);
+            String role =retrieveRoleFromDatabase(username);
 
-
+            loggedInUser=new User(username, role);
             System.out.println("Login successful for user: " + username);
             labelNotSuccesful.setVisible(false);
-            switchToUi(event);
+            switchToUi(event, loggedInUser);
 
         } else {
             System.out.println("Failed.");
             labelNotSuccesful.setVisible(true);
         }
     }
+
 
     public boolean validateLogin() {
         DatabaseConnection connectNow = new DatabaseConnection();
@@ -120,17 +152,49 @@ public class ControllerLogin {
     }
 
     @FXML
-    public void switchToUi(ActionEvent event) throws IOException {
+    public void switchToUi(ActionEvent event, User loggedInUser) throws IOException {
         if (event.getSource() instanceof Node) {
             Node source = (Node) event.getSource();
             Scene scene = source.getScene();
 
+
             if (validateLogin()) {
-                Parent root = FXMLLoader.load(getClass().getResource("userinterface.fxml"));
-                Stage stage = (Stage) scene.getWindow();
-                scene = new Scene(root);
-                stage.setScene(scene);
-                stage.show();
+                if (loggedInUser.getRole().equals("profesor")) {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("ProfInterface.fxml"));
+                    Parent root = loader.load();
+
+                    // Access the controller of ProfInterface
+                    ProfInterface profInterfaceController = loader.getController();
+
+                    // Set the logged-in user in ProfInterface
+                    profInterfaceController.setLoggedInUser(loggedInUser);
+
+                    Stage stage = (Stage) scene.getWindow();
+                    scene = new Scene(root);
+                    stage.setScene(scene);
+                    stage.show();
+                }
+                else if(loggedInUser.getRole().equals("student"))
+                {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("userinterface.fxml"));
+                    Parent root = loader.load();
+
+                    ControllerUI controller = loader.getController();
+
+                    controller.setLoggedInUser(loggedInUser);
+
+                    Stage stage = (Stage) scene.getWindow();
+                    scene = new Scene(root);
+                    stage.setScene(scene);
+                    stage.show();
+                } else if (loggedInUser.getRole().equals("administrator")) {
+                    Parent root = FXMLLoader.load(getClass().getResource("AdminInterface.fxml"));
+                    stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                    scene = new Scene(root);
+                    stage.setScene(scene);
+                    stage.show();
+
+                }
             }
         }
     }

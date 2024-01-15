@@ -1,4 +1,8 @@
 package sample;
+
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+
 public class User {
     private int userId;
     private String username;
@@ -14,6 +18,10 @@ public class User {
     private int nrContract;
 
     public User() {
+    }
+    public User(String username, String role) {
+        this.username = username;
+        this.role = role;
     }
 
     public User(int userId, String username, String password, String role, String cnp, String nume, String prenume, String adresa, String nrTelefon, String email, String iban, int nrContract) {
@@ -32,6 +40,14 @@ public class User {
     }
 
     // Getter and Setter methods
+
+    public StringProperty usernameProperty() {
+        return new SimpleStringProperty(username);
+    }
+
+    public StringProperty roleProperty() {
+        return new SimpleStringProperty(role);
+    }
     public int getUserId() {
         return userId;
     }
